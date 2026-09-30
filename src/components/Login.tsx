@@ -3,6 +3,10 @@ import { Lock } from 'lucide-react'
 import kbcLogo from '../assets/kbc-logo.svg'
 import { ApiError, login } from '../lib/api'
 
+// Shown to demo visitors (judges). Set VITE_DEMO_PASSWORD in .env.local or on the host, never in the repo.
+const DEMO_USER = import.meta.env.VITE_DEMO_USER || 'adviseur'
+const DEMO_PASSWORD: string | undefined = import.meta.env.VITE_DEMO_PASSWORD
+
 const FOUT: Record<string, string> = {
   invalid_credentials: 'Onjuiste gebruikersnaam of wachtwoord.',
   not_adviseur: 'Deze backoffice is enkel voor KBC-medewerkers.',
@@ -54,6 +58,20 @@ export function Login() {
           <span className="inline-flex items-center gap-2"><Lock size={14} /> {bezig ? 'Bezig…' : 'Aanmelden'}</span>
         </button>
         <p className="text-xs text-slate-400">Sessie verloopt na 1 uur. Alle raadplegingen worden gelogd.</p>
+        <div className="rounded-xl bg-kbc-100 p-3 text-sm text-kbc-800">
+          <p className="font-medium">Demo-login voor bezoekers</p>
+          <dl className="mt-1 grid grid-cols-[auto_1fr] gap-x-3 font-mono text-xs">
+            <dt className="text-slate-500">gebruiker</dt><dd>{DEMO_USER}</dd>
+            <dt className="text-slate-500">wachtwoord</dt><dd>{DEMO_PASSWORD ?? 'vraag het team'}</dd>
+          </dl>
+          {DEMO_PASSWORD && (
+            <button type="button" onClick={() => { setUsername(DEMO_USER); setPassword(DEMO_PASSWORD) }}
+              className="mt-2 w-full rounded-lg bg-white py-1.5 text-xs font-medium text-kbc-600 ring-1 ring-kbc-400 hover:bg-kbc-50">
+              Vul demo-login in
+            </button>
+          )}
+          <p className="mt-2 text-[11px] text-slate-500">Enkel fictieve klantdata, geen echte KBC-gegevens.</p>
+        </div>
       </form>
     </div>
   )

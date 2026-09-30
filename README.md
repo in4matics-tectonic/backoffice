@@ -18,11 +18,23 @@ pnpm dev          # http://localhost:5173
 Log in as `adviseur` with the demo password (ask the backend owner; it's `DEMO_PASSWORD` in the backend's `.env`).
 Customer accounts (`tom`, `lien`, `sarah`) are refused: this app is for KBC staff only.
 
+**Demo login for visitors/judges.** The login page shows a "Demo-login voor bezoekers" box with the username and
+password, plus a button that fills them in. The password is *not* in the repo: put it in `.env.local` (git-ignored)
+locally, or set `VITE_DEMO_PASSWORD` on the host before building:
+
+```bash
+echo "VITE_DEMO_PASSWORD=<same as the backend's DEMO_PASSWORD>" > .env.local
+```
+
+Without it the box shows the username and "vraag het team". Note: whatever you set here ends up in the public JS
+bundle, so anyone with the URL can log in. That's fine for mock data, but never reuse a real password.
+
 Config (optional, see `.env.example`):
 
 | Var | Used for |
 | --- | --- |
 | `BACKEND_URL` | Dev only. Where the Vite proxy sends `/v1/*`. Default `http://127.0.0.1:3000` |
+| `VITE_DEMO_USER` / `VITE_DEMO_PASSWORD` | Demo login shown on the login page (see above) |
 | `VITE_API_URL` | Production build only. Absolute API base if the API isn't served on the same origin. Add this origin to the backend's `CORS_ORIGINS` |
 
 ## Screens
@@ -51,7 +63,8 @@ backoffice stay in sync.
 
 - Login against the API; only role `adviseur` is accepted. The JWT lives in `sessionStorage` (cleared when the tab
   closes), never in `localStorage` or the bundle. Auto-logout on token expiry and on any `401`.
-- No secrets in this repo or the frontend bundle. The password is only typed in the login form and cleared after submit.
+- No secrets in this repo. The only credential that can reach the bundle is the opt-in demo password for judges
+  (`VITE_DEMO_PASSWORD`); the password field is cleared after every submit.
 - In dev the API is reached through the Vite proxy (same origin, no CORS needed).
 - Health-related (`gevoelig`) signal labels are masked by default; the adviser has to click to reveal them.
 - Every read of personal data is logged by the backend and visible in the Auditlog.
