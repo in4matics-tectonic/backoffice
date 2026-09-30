@@ -1,4 +1,4 @@
-# KBC Momentum – Backoffice
+# Kate Studio – KBC Momentum backoffice
 
 Backoffice for the KBC Momentum PoC. A KBC employee (role `adviseur`) sees all customers, their detected life moments
 (intent score), the signals behind them and the recommended next best action, live as new data comes in.

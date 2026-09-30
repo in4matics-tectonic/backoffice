@@ -66,7 +66,7 @@ function Dashboard({ gebruiker }: { gebruiker: string }) {
       <aside className="flex flex-col bg-kbc-800 p-4 text-white md:sticky md:top-0 md:h-screen">
         <div className="mb-6 flex items-center gap-3 px-1">
           <img src={kbcLogo} alt="KBC" className="size-10 rounded-lg bg-white p-0.5" />
-          <span className="text-lg font-semibold">Momentum</span>
+          <span className="text-lg font-semibold">Kate Studio</span>
         </div>
         <nav className="flex gap-1 md:flex-col">
           {NAV.map((n) => (

@@ -40,7 +40,7 @@ export function Login() {
         <div className="flex items-center gap-3">
           <img src={kbcLogo} alt="KBC" className="size-12" />
           <div>
-            <h1 className="text-lg font-semibold text-kbc-900">Momentum Backoffice</h1>
+            <h1 className="text-lg font-semibold text-kbc-900">Kate Studio</h1>
             <p className="text-sm text-slate-500">Enkel voor KBC-medewerkers</p>
           </div>
         </div>
