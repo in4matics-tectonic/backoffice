@@ -2,11 +2,7 @@ import { useState } from 'react'
 import { Lock } from 'lucide-react'
 import kbcLogo from '../assets/kbc-logo.svg'
 import { ApiError, login } from '../lib/api'
-
-// Public on purpose: judges must be able to log in without asking. Mock data only; must match the backend's DEMO_PASSWORD.
-// VITE_DEMO_USER / VITE_DEMO_PASSWORD override it at build time.
-const DEMO_USER: string = import.meta.env.VITE_DEMO_USER || 'adviseur'
-const DEMO_PASSWORD: string = import.meta.env.VITE_DEMO_PASSWORD || 'in4matics-must-win'
+import { DEMO_PASSWORD, DEMO_USER } from '../lib/demo'
 
 const FOUT: Record<string, string> = {
   invalid_credentials: 'Onjuiste gebruikersnaam of wachtwoord.',

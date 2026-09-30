@@ -1,7 +1,9 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { LogOut, Radar as RadarIcon, ScrollText, Search, Users } from 'lucide-react'
 import type { Demo, KlantKort, Momenten } from './types'
-import { api, getSession, logout, onSessionChange } from './lib/api'
+import { api, getSession, login, logout, onSessionChange } from './lib/api'
+import { DEMO_PASSWORD, DEMO_USER } from './lib/demo'
+import { tell, useBridge } from './lib/pocBridge'
 import { usePoll } from './lib/usePoll'
 import { Login } from './components/Login'
 import { KlantLijst, type KlantRij } from './components/KlantLijst'
@@ -29,6 +31,13 @@ function useSession() {
 
 export default function App() {
   const session = useSession()
+  const user = session?.user.sub ?? null
+  // Showcase tour: report who is logged in, log in as the demo adviser when asked
+  useEffect(() => tell({ kateStudio: 'ready', user }), [user])
+  useBridge((m) => {
+    if (m.kateStudio === 'hello') tell({ kateStudio: 'ready', user })
+    if (m.kateStudio === 'login' && !user) login(DEMO_USER, DEMO_PASSWORD).catch((e) => tell({ kateStudio: 'error', error: String(e?.code ?? e) }))
+  }, [user])
   return session ? <Dashboard gebruiker={session.user.sub} /> : <Login />
 }
 
@@ -60,6 +69,11 @@ function Dashboard({ gebruiker }: { gebruiker: string }) {
   const actief = gekozen ?? rijen[0]?.id ?? null
   const klant = rijen.find((r) => r.id === actief)
   const openKlant = (id: string) => { setGekozen(id); setPagina('klanten') }
+  useBridge((m) => {
+    if (m.kateStudio !== 'page' || !NAV.some((n) => n.id === m.page)) return
+    if (m.klantId) setGekozen(m.klantId)
+    setPagina(m.page as Pagina)
+  }, [])
 
   return (
     <div className="min-h-screen md:grid md:grid-cols-[240px_1fr]">
