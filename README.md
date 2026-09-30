@@ -70,3 +70,26 @@ backoffice stay in sync.
 - Every read of personal data is logged by the backend and visible in the Auditlog.
 - For a real deployment: serve `dist/` behind HTTPS with a strict CSP (`default-src 'self'; connect-src <api>`),
   and put SSO in front instead of shared demo passwords.
+
+## Deploying (VM)
+
+It's a static site: build once, serve `dist/` with any web server (nginx, Caddy).
+
+```bash
+pnpm install --frozen-lockfile
+VITE_DEMO_PASSWORD=<backend DEMO_PASSWORD> pnpm build   # env vars are baked in at build time
+```
+
+Recommended: serve the backoffice and the API on the **same origin** and reverse-proxy `/v1/` to the backend, so
+`VITE_API_URL` stays empty and no CORS is needed. Example (Caddy):
+
+```
+backoffice.example.com {
+  handle /v1/* { reverse_proxy 127.0.0.1:3000 }
+  handle { root * /srv/backoffice/dist; try_files {path} /index.html; file_server }
+}
+```
+
+If the API is on another origin instead: build with `VITE_API_URL=https://api.example.com` and add the backoffice
+origin to the backend's `CORS_ORIGINS`. Behind a proxy, the backend needs `TRUST_PROXY=true`, and `DEMO_MODE=true`
+for the Speel af / Volgende / Reset buttons.
