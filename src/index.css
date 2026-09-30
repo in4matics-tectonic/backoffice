@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+/* KBC brand: navy #0d2a50, cyan #00aeef / #0097db, green accent #80c342 (taken from kbc.be) */
+@theme {
+  --font-sans: "KBC Sans", "Open Sans", "Segoe UI", system-ui, sans-serif;
+  --color-kbc-900: #081c38;
+  --color-kbc-800: #0d2a50;
+  --color-kbc-600: #0097db;
+  --color-kbc-400: #00aeef;
+  --color-kbc-100: #e5f6fd;
+  --color-kbc-50: #f3f8fc;
+  --color-kbc-green: #80c342;
+}
+
+body { background: var(--color-kbc-50); color: var(--color-kbc-800); }
+
+@keyframes slide-in { from { opacity: 0; transform: translateY(-6px); background: #e5f6fd; } to { opacity: 1; transform: none; } }
+.slide-in { animation: slide-in .6s ease-out; }
