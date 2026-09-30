@@ -19,15 +19,9 @@ Log in as `adviseur` with the demo password (ask the backend owner; it's `DEMO_P
 Customer accounts (`tom`, `lien`, `sarah`) are refused: this app is for KBC staff only.
 
 **Demo login for visitors/judges.** The login page shows a "Demo-login voor bezoekers" box with the username and
-password, plus a button that fills them in. The password is *not* in the repo: put it in `.env.local` (git-ignored)
-locally, or set `VITE_DEMO_PASSWORD` on the host before building:
-
-```bash
-echo "VITE_DEMO_PASSWORD=<same as the backend's DEMO_PASSWORD>" > .env.local
-```
-
-Without it the box shows the username and "vraag het team". Note: whatever you set here ends up in the public JS
-bundle, so anyone with the URL can log in. That's fine for mock data, but never reuse a real password.
+password, plus a button that fills them in. The password is committed on purpose (`src/components/Login.tsx`) so
+judges never have to ask; it only protects mock data. It must match the backend's `DEMO_PASSWORD`: if that changes,
+update it there or override it at build time with `VITE_DEMO_PASSWORD`.
 
 Config (optional, see `.env.example`):
 
@@ -63,8 +57,8 @@ backoffice stay in sync.
 
 - Login against the API; only role `adviseur` is accepted. The JWT lives in `sessionStorage` (cleared when the tab
   closes), never in `localStorage` or the bundle. Auto-logout on token expiry and on any `401`.
-- No secrets in this repo. The only credential that can reach the bundle is the opt-in demo password for judges
-  (`VITE_DEMO_PASSWORD`); the password field is cleared after every submit.
+- The only credential in this repo is the public demo password for judges (mock data only). No API keys or JWT secrets.
+  The password field is cleared after every submit.
 - In dev the API is reached through the Vite proxy (same origin, no CORS needed).
 - Health-related (`gevoelig`) signal labels are masked by default; the adviser has to click to reveal them.
 - Every read of personal data is logged by the backend and visible in the Auditlog.
@@ -77,7 +71,7 @@ It's a static site: build once, serve `dist/` with any web server (nginx, Caddy)
 
 ```bash
 pnpm install --frozen-lockfile
-VITE_DEMO_PASSWORD=<backend DEMO_PASSWORD> pnpm build   # env vars are baked in at build time
+pnpm build   # VITE_* env vars are baked in at build time
 ```
 
 Recommended: serve the backoffice and the API on the **same origin** and reverse-proxy `/v1/` to the backend, so
