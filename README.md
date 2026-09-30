@@ -19,7 +19,7 @@ Log in as `adviseur` with the demo password (ask the backend owner; it's `DEMO_P
 Customer accounts (`tom`, `lien`, `sarah`) are refused: this app is for KBC staff only.
 
 **Demo login for visitors/judges.** The login page shows a "Demo-login voor bezoekers" box with the username and
-password, plus a button that fills them in. The password is committed on purpose (`src/components/Login.tsx`) so
+password, plus a button that fills them in. The password (`in4matics-must-win`, same for every demo user) is committed on purpose (`src/components/Login.tsx`) so
 judges never have to ask; it only protects mock data. It must match the backend's `DEMO_PASSWORD`: if that changes,
 update it there or override it at build time with `VITE_DEMO_PASSWORD`.
 
