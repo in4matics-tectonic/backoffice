@@ -1,5 +1,5 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
-import { LogOut, Network, Radar as RadarIcon, ScrollText, Search, Users } from 'lucide-react'
+import { LogOut, Network, Radar as RadarIcon, ScrollText, Search, Users, Waypoints } from 'lucide-react'
 import type { Demo, KlantKort, Momenten } from './types'
 import { api, getSession, login, logout, onSessionChange } from './lib/api'
 import { DEMO_PASSWORD, DEMO_USER } from './lib/demo'
@@ -12,11 +12,12 @@ import { Afspeelbalk } from './components/Afspeelbalk'
 import { Radar } from './components/Radar'
 import { AuditLog } from './components/AuditLog'
 import { EcosysteemCatalogus } from './components/EcosysteemCatalogus'
+import { KlantenNetwerk } from './components/KlantenNetwerk'
 import { Kaart } from './components/ui'
 import kbcLogo from './assets/kbc-logo.svg'
 
 const POLL_MS = 1500
-type Pagina = 'radar' | 'klanten' | 'ecosystemen' | 'audit'
+type Pagina = 'radar' | 'klanten' | 'netwerk' | 'ecosystemen' | 'audit'
 
 function useSession() {
   const session = useSyncExternalStore(onSessionChange, () => sessionStorage.getItem('momentum.session'))
@@ -45,6 +46,7 @@ export default function App() {
 const NAV: { id: Pagina; label: string; icon: typeof Users }[] = [
   { id: 'radar', label: 'Moment Radar', icon: RadarIcon },
   { id: 'klanten', label: 'Klanten', icon: Users },
+  { id: 'netwerk', label: 'Klantennetwerk', icon: Waypoints },
   { id: 'ecosystemen', label: 'Ecosystemen', icon: Network },
   { id: 'audit', label: 'Auditlog', icon: ScrollText },
 ]
@@ -131,6 +133,7 @@ function Dashboard({ gebruiker }: { gebruiker: string }) {
               </div>
             </div>
           )}
+          {data && pagina === 'netwerk' && <KlantenNetwerk klanten={rijen} openKlant={openKlant} />}
           {data && pagina === 'ecosystemen' && <EcosysteemCatalogus klanten={rijen} openKlant={openKlant} />}
           {data && pagina === 'audit' && (
             <div className="space-y-4">

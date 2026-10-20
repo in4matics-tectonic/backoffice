@@ -1,15 +1,18 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Lock, Share2, Unlink } from 'lucide-react'
 import type { Ecosystemen, KlantPartner } from '../types'
 import { api } from '../lib/api'
 import { usePoll } from '../lib/usePoll'
 import { HERKOMST_LABEL } from '../lib/labels'
 import { ClusterTabel, EcosysteemBrein } from './EcosysteemBrein'
+import { VolScherm, VolSchermKnop } from './graaf'
 import { Kaart } from './ui'
 
 /** The customer's ecosystem clusters (graph or table) plus the partners they share data from. Live: the app toggles sharing. */
 export function EcosysteemKaart({ klantId, klantNaam }: { klantId: string; klantNaam: string }) {
   const [weergave, setWeergave] = useState<'graaf' | 'lijst'>('graaf')
+  const [vol, setVol] = useState(false)
+  const sluit = useCallback(() => setVol(false), [])
   const { data } = usePoll(async () => {
     const [eco, partners] = await Promise.all([
       api<Ecosystemen>(`/klanten/${klantId}/ecosystemen`),
@@ -27,20 +30,31 @@ export function EcosysteemKaart({ klantId, klantNaam }: { klantId: string; klant
     <>
       <Kaart titel="Ecosysteemkaart"
         extra={
-          <div className="flex rounded-lg bg-slate-100 p-0.5 text-xs">
-            {(['graaf', 'lijst'] as const).map((w) => (
-              <button key={w} onClick={() => setWeergave(w)} aria-pressed={weergave === w}
-                className={`rounded-md px-2.5 py-1 ${weergave === w ? 'bg-white font-medium text-kbc-800 shadow-sm' : 'text-slate-500'}`}>
-                {w === 'graaf' ? 'Graaf' : 'Lijst'}
-              </button>
-            ))}
+          <div className="flex items-center gap-2">
+            {weergave === 'graaf' && <VolSchermKnop open={() => setVol(true)} />}
+            <div className="flex rounded-lg bg-slate-100 p-0.5 text-xs">
+              {(['graaf', 'lijst'] as const).map((w) => (
+                <button key={w} onClick={() => setWeergave(w)} aria-pressed={weergave === w}
+                  className={`rounded-md px-2.5 py-1 ${weergave === w ? 'bg-white font-medium text-kbc-800 shadow-sm' : 'text-slate-500'}`}>
+                  {w === 'graaf' ? 'Graaf' : 'Lijst'}
+                </button>
+              ))}
+            </div>
           </div>
         }>
         <p className="mb-3 text-sm text-slate-500">
           Eén cluster per KBC-ecosysteem. Mogelijke links volgen uit vaste regels op de actieve en gekende links en op bevestigde levensmomenten.
         </p>
-        {weergave === 'graaf' ? <EcosysteemBrein data={data.eco} klantNaam={klantNaam} /> : <ClusterTabel data={data.eco} />}
+        {weergave === 'lijst' ? <ClusterTabel data={data.eco} />
+          : vol ? <p className="rounded-xl bg-slate-50 p-6 text-center text-sm text-slate-500">Geopend op volledig scherm.</p>
+          : <EcosysteemBrein data={data.eco} klantNaam={klantNaam} />}
       </Kaart>
+
+      {vol && (
+        <VolScherm titel={`Ecosysteemkaart · ${klantNaam}`} sub={`${klantId} · ${data.eco.clusters.length} ecosystemen`} sluit={sluit}>
+          <EcosysteemBrein data={data.eco} klantNaam={klantNaam} vul />
+        </VolScherm>
+      )}
 
       <Kaart titel="Partners van deze klant" extra={<span className="text-xs text-slate-500">{data.partners.length} KBC-partners in totaal</span>}>
         <div className="grid gap-4 md:grid-cols-2">
