@@ -10,8 +10,9 @@ const FOUT: Record<string, string> = {
 }
 
 export function Login() {
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
+  // The demo login is filled in from the start: one click on "Aanmelden" (the demo is open to visitors)
+  const [username, setUsername] = useState(DEMO_USER)
+  const [password, setPassword] = useState(DEMO_PASSWORD)
   const [fout, setFout] = useState<string | null>(null)
   const [bezig, setBezig] = useState(false)
 
