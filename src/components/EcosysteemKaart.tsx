@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { Lock, Share2, Unlink } from 'lucide-react'
-import type { Ecosystemen, KlantPartner } from '../types'
+import type { Ecosystemen, Kans, KlantPartner } from '../types'
 import { api } from '../lib/api'
 import { usePoll } from '../lib/usePoll'
 import { HERKOMST_LABEL } from '../lib/labels'
@@ -13,12 +13,13 @@ export function EcosysteemKaart({ klantId, klantNaam }: { klantId: string; klant
   const [weergave, setWeergave] = useState<'graaf' | 'lijst'>('graaf')
   const [vol, setVol] = useState(false)
   const sluit = useCallback(() => setVol(false), [])
-  const { data } = usePoll(async () => {
-    const [eco, partners] = await Promise.all([
+  const { data, ververs } = usePoll(async () => {
+    const [eco, partners, kansen] = await Promise.all([
       api<Ecosystemen>(`/klanten/${klantId}/ecosystemen`),
       api<KlantPartner[]>(`/klanten/${klantId}/partners`),
+      api<Kans[]>(`/klanten/${klantId}/kansen`),
     ])
-    return { eco, partners }
+    return { eco, partners, kansen }
   }, 3000, [klantId])
 
   if (!data) return <Kaart titel="Ecosysteemkaart"><p className="text-sm text-slate-500">Laden…</p></Kaart>
@@ -45,14 +46,14 @@ export function EcosysteemKaart({ klantId, klantNaam }: { klantId: string; klant
         <p className="mb-3 text-sm text-slate-500">
           Eén cluster per KBC-ecosysteem. Mogelijke links volgen uit vaste regels op de actieve en gekende links en op bevestigde levensmomenten.
         </p>
-        {weergave === 'lijst' ? <ClusterTabel data={data.eco} />
+        {weergave === 'lijst' ? <ClusterTabel data={data.eco} kansen={data.kansen} />
           : vol ? <p className="rounded-xl bg-slate-50 p-6 text-center text-sm text-slate-500">Geopend op volledig scherm.</p>
-          : <EcosysteemBrein data={data.eco} klantNaam={klantNaam} />}
+          : <EcosysteemBrein data={data.eco} klantId={klantId} klantNaam={klantNaam} kansen={data.kansen} naVerstuurd={ververs} />}
       </Kaart>
 
       {vol && (
         <VolScherm titel={`Ecosysteemkaart · ${klantNaam}`} sub={`${klantId} · ${data.eco.clusters.length} ecosystemen`} sluit={sluit}>
-          <EcosysteemBrein data={data.eco} klantNaam={klantNaam} vul />
+          <EcosysteemBrein data={data.eco} klantId={klantId} klantNaam={klantNaam} kansen={data.kansen} naVerstuurd={ververs} vul />
         </VolScherm>
       )}
 

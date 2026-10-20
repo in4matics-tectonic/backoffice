@@ -1,4 +1,4 @@
-import type { Bron, Domein, Fase, Herkomst, LinkStatus, MomentId } from '../types'
+import type { Bron, Domein, Fase, Herkomst, KansStatus, LinkStatus, MomentId } from '../types'
 
 export const MOMENT_LABEL: Record<MomentId, string> = {
   GEZINSUITBREIDING: 'Gezinsuitbreiding',
@@ -44,4 +44,11 @@ export const HERKOMST_LABEL: Record<Herkomst, string> = {
   REKENING: 'Gezien op de rekening',
   KBC_MOBILE: 'Gebruikt in KBC Mobile',
   KLANT: 'Zelf toegevoegd door klant',
+}
+
+export const KANS_STATUS_LABEL: Record<KansStatus, string> = {
+  nieuw: 'Verstuurd, nog niet gezien',
+  gezien: 'Gezien in de app',
+  interesse: 'Klant heeft interesse',
+  afgewezen: 'Klant heeft geen interesse',
 }

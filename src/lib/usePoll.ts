@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 /** Polls `fn` every `ms` (paused while the tab is hidden). Returns the last good value, so the UI doesn't flicker on a failed tick. */
 export function usePoll<T>(fn: () => Promise<T>, ms: number, deps: unknown[] = []) {
@@ -30,5 +30,10 @@ export function usePoll<T>(fn: () => Promise<T>, ms: number, deps: unknown[] = [
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ms, ...deps])
 
-  return { data, error }
+  /** Fetch right now, e.g. after a write, without waiting for the next tick. */
+  const ververs = useCallback(async () => {
+    try { setData(await fnRef.current()); setError(false) } catch { setError(true) }
+  }, [])
+
+  return { data, error, ververs }
 }

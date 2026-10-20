@@ -84,3 +84,18 @@ export interface Ecosystemen {
   clusters: Cluster[]
   verbanden: Verband[]
 }
+
+// ---- Kansen: possible links an adviser sent to the customer's app (GET/POST /klanten/:id/kansen) ----
+export type KansStatus = 'nieuw' | 'gezien' | 'interesse' | 'afgewezen'
+export interface Kans {
+  id: string
+  klantId: string
+  link: { id: NodeId; soort: 'product' | 'partner'; ref: string; naam: string; ecosysteem: string; ecosysteemNaam: string }
+  score: number
+  waarom: string[]
+  bericht: string | null
+  status: KansStatus
+  verstuurdDoor: string
+  verstuurdOp: string
+  bijgewerktOp: string
+}

@@ -1,18 +1,19 @@
 import { useCallback, useMemo, useState } from 'react'
 import { forceCollide, forceLink, forceManyBody, forceX, forceY, type SimulationLinkDatum } from 'd3-force'
-import { ArrowRight } from 'lucide-react'
-import type { Ecosystemen, KlantKort, Link, LinkStatus } from '../types'
+import { ArrowRight, Smartphone } from 'lucide-react'
+import type { Ecosystemen, Kans, KlantKort, Link, LinkStatus } from '../types'
 import { api } from '../lib/api'
 import { usePoll } from '../lib/usePoll'
 import { HERKOMST_LABEL, LINK_KLEUR, LINK_STREEP, pct } from '../lib/labels'
 import { hash, knoopId as id, kort, labelBij, NAVY, plaatsBloemen, ringStraal, STATUSSEN, useGraafCanvas, type BloemKnoop } from '../lib/useGraafCanvas'
 import { StatusFilter, StatusPil, VolScherm, VolSchermKnop, ZoomKnoppen } from './graaf'
+import { KansDialoog, KansStatusRegel } from './KansDialoog'
 import { Kaart, LiveBadge } from './ui'
 
 // Every customer in one graph, connected through the ecosystems (or the products and partners) they have in
 // common. Clusters and statuses come as-is from GET /klanten/:id/ecosystemen; nothing is re-scored here.
 
-interface Rij { klant: KlantKort; eco: Ecosystemen }
+interface Rij { klant: KlantKort; eco: Ecosystemen; kansen: Kans[] }
 type Niveau = 'ecosysteem' | 'link'
 /** One customer's relation to a hub or link node. */
 interface Relatie { klantId: string; klantNaam: string; status: LinkStatus; links: Link[] }
@@ -100,8 +101,11 @@ export function KlantenNetwerk({ klanten, openKlant }: { klanten: KlantKort[]; o
   const [weergave, setWeergave] = useState<'graaf' | 'lijst'>('graaf')
   const [vol, setVol] = useState(false)
   const sluit = useCallback(() => setVol(false), [])
-  const { data: rijen } = usePoll(
-    async () => Promise.all(klanten.map(async (klant) => ({ klant, eco: await api<Ecosystemen>(`/klanten/${klant.id}/ecosystemen`) }))),
+  const { data: rijen, ververs } = usePoll(
+    async () => Promise.all(klanten.map(async (klant) => {
+      const [eco, kansen] = await Promise.all([api<Ecosystemen>(`/klanten/${klant.id}/ecosystemen`), api<Kans[]>(`/klanten/${klant.id}/kansen`)])
+      return { klant, eco, kansen }
+    })),
     5000, [klanten.map((k) => k.id).join()],
   )
 
@@ -132,19 +136,21 @@ export function KlantenNetwerk({ klanten, openKlant }: { klanten: KlantKort[]; o
         {!rijen ? <p className="text-sm text-slate-500">Laden…</p>
           : weergave === 'lijst' ? <NetwerkTabel rijen={rijen} openKlant={openKlant} />
           : vol ? <p className="rounded-xl bg-slate-50 p-6 text-center text-sm text-slate-500">Geopend op volledig scherm.</p>
-          : <NetwerkGraaf rijen={rijen} openKlant={openKlant} />}
+          : <NetwerkGraaf rijen={rijen} openKlant={openKlant} naVerstuurd={ververs} />}
       </Kaart>
 
       {vol && rijen && (
         <VolScherm titel="Klantennetwerk" sub={`${klanten.length} klanten`} sluit={sluit}>
-          <NetwerkGraaf rijen={rijen} openKlant={openKlant} vul />
+          <NetwerkGraaf rijen={rijen} openKlant={openKlant} naVerstuurd={ververs} vul />
         </VolScherm>
       )}
     </div>
   )
 }
 
-function NetwerkGraaf({ rijen, openKlant, vul = false }: { rijen: Rij[]; openKlant: (id: string) => void; vul?: boolean }) {
+function NetwerkGraaf({ rijen, openKlant, naVerstuurd, vul = false }: { rijen: Rij[]; openKlant: (id: string) => void; naVerstuurd: () => void; vul?: boolean }) {
+  const [dialoog, setDialoog] = useState<{ rij: Rij; link: Link } | null>(null)
+  const sluitDialoog = useCallback(() => setDialoog(null), [])
   const [niveau, setNiveau] = useState<Niveau>('ecosysteem')
   const [filter, setFilter] = useState<Record<LinkStatus, boolean>>({ actief: true, gekend: true, mogelijk: true })
   const [alleenGedeeld, setAlleenGedeeld] = useState(false)
@@ -261,8 +267,14 @@ function NetwerkGraaf({ rijen, openKlant, vul = false }: { rijen: Rij[]; openKla
       </div>
 
       <div className={vul ? 'min-h-0 overflow-y-auto' : ''}>
-        <Detail knoop={gekozenKnoop} graaf={graaf} rijen={rijen} niveau={niveau} kies={setGekozen} openKlant={openKlant} />
+        <Detail knoop={gekozenKnoop} graaf={graaf} rijen={rijen} niveau={niveau} kies={setGekozen} openKlant={openKlant}
+          stuur={(klantId, link) => setDialoog({ rij: rijen.find((r) => r.klant.id === klantId)!, link })} />
       </div>
+
+      {dialoog && (
+        <KansDialoog klantId={dialoog.rij.klant.id} klantNaam={dialoog.rij.klant.naam} link={dialoog.link} sluit={sluitDialoog} verstuurd={naVerstuurd}
+          ecosysteemNaam={dialoog.rij.eco.clusters.find((c) => c.ecosysteem === dialoog.link.ecosysteem)?.naam ?? dialoog.link.ecosysteem} />
+      )}
     </div>
   )
 }
@@ -281,8 +293,9 @@ function Tooltip({ knoop, x, y, breedte }: { knoop: Knoop; x: number; y: number;
   )
 }
 
-function Detail({ knoop, graaf, rijen, niveau, kies, openKlant }: {
+function Detail({ knoop, graaf, rijen, niveau, kies, openKlant, stuur }: {
   knoop?: Knoop; graaf: { knopen: Knoop[] }; rijen: Rij[]; niveau: Niveau; kies: (id: string | null) => void; openKlant: (id: string) => void
+  stuur: (klantId: string, link: Link) => void
 }) {
   const knopKlant = (r: { klantId: string; klantNaam: string }) => (
     <button onClick={() => kies(`klant:${r.klantId}`)} className="truncate text-left font-medium text-kbc-600 hover:underline">{r.klantNaam}</button>
@@ -381,12 +394,18 @@ function Detail({ knoop, graaf, rijen, niveau, kies, openKlant }: {
       <ul className="space-y-2">
         {knoop.relaties.map((r) => {
           const eigen = r.links[0]!
+          const kans = rijen.find((x) => x.klant.id === r.klantId)?.kansen.find((k) => k.link.id === eigen.id)
           return (
-            <li key={r.klantId} className="rounded-lg bg-white p-2 ring-1 ring-slate-200">
+            <li key={r.klantId} className="space-y-2 rounded-lg bg-white p-2 ring-1 ring-slate-200">
               <div className="flex items-center justify-between gap-2">{knopKlant(r)}<StatusPil status={r.status} /></div>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="text-xs text-slate-500">
                 {eigen.herkomst ? HERKOMST_LABEL[eigen.herkomst] : eigen.score != null ? `${pct(eigen.score)} kans · via ${eigen.waarom?.map((w) => w.naam).join(', ')}` : ''}
               </p>
+              {eigen.status === 'mogelijk' && (kans ? <KansStatusRegel kans={kans} /> : (
+                <button onClick={() => stuur(r.klantId, eigen)} className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-kbc-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-kbc-900">
+                  <Smartphone size={13} /> Stuur naar KBC Mobile van {r.klantNaam}
+                </button>
+              ))}
             </li>
           )
         })}

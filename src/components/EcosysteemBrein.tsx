@@ -1,9 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
+import { Smartphone } from 'lucide-react'
 import { forceCollide, forceLink, forceManyBody, forceX, forceY, type SimulationLinkDatum } from 'd3-force'
-import type { Ecosystemen, Link, LinkStatus, MomentId } from '../types'
-import { HERKOMST_LABEL, LINK_KLEUR, LINK_STREEP, MOMENT_LABEL, pct } from '../lib/labels'
+import type { Ecosystemen, Kans, Link, LinkStatus, MomentId } from '../types'
+import { HERKOMST_LABEL, KANS_STATUS_LABEL, LINK_KLEUR, LINK_STREEP, MOMENT_LABEL, pct } from '../lib/labels'
 import { knoopId as id, kort, labelBij, NAVY, plaatsBloemen, ringStraal, STATUSSEN, useGraafCanvas, type BloemKnoop } from '../lib/useGraafCanvas'
 import { StatusFilter, StatusPil, StatusStip, ZoomKnoppen } from './graaf'
+import { KansDialoog, KansStatusRegel } from './KansDialoog'
 
 // "Obsidian brain" of one customer: the customer in the middle, one hub per ecosystem cluster, and every
 // active, known and possible link on a ring around its hub ("flower"). Thin amber lines are the reasoning
@@ -48,9 +50,17 @@ function bouwGraaf(data: Ecosystemen, klantNaam: string) {
   return { knopen, lijnen, skelet: { knopen: knopen.filter((k) => k.soort !== 'link'), lijnen: lijnen.filter((l) => l.soort === 'structuur') } }
 }
 
-export function EcosysteemBrein({ data, klantNaam, maxHoogte = 640, vul = false }: { data: Ecosystemen; klantNaam: string; maxHoogte?: number; vul?: boolean }) {
+export function EcosysteemBrein({ data, klantId, klantNaam, kansen, naVerstuurd, maxHoogte = 640, vul = false }: {
+  data: Ecosystemen; klantId: string; klantNaam: string
+  /** Possible links already sent to the customer's app, and a refresh after sending one. */
+  kansen: Kans[]; naVerstuurd: () => void
+  maxHoogte?: number; vul?: boolean
+}) {
   const [hover, setHover] = useState<{ id: string; x: number; y: number } | null>(null)
   const [gekozen, setGekozen] = useState<string | null>(null)
+  const [dialoog, setDialoog] = useState<Link | null>(null)
+  const sluitDialoog = useCallback(() => setDialoog(null), [])
+  const kansVan = new Map(kansen.map((k) => [k.link.id, k]))
   const [filter, setFilter] = useState<Record<LinkStatus, boolean>>({ actief: true, gekend: true, mogelijk: true })
   const [redenering, setRedenering] = useState(true)
 
@@ -67,7 +77,11 @@ export function EcosysteemBrein({ data, klantNaam, maxHoogte = 640, vul = false 
       .force('y', forceY(0).strength(0.06)),
     omvang: (k) => (k.bloemStraal ? k.bloemStraal + 14 : 0),
     sleepbaar: (k) => k.soort === 'hub' || k.soort === 'moment',
-    kies: (k) => setGekozen(k && k.soort !== 'klant' ? k.id : null),
+    kies: (k) => {
+      setGekozen(k && k.soort !== 'klant' ? k.id : null)
+      // A possible link that wasn't sent yet: offer to send it to the customer's app right away
+      if (k?.link?.status === 'mogelijk' && !kansVan.has(k.id)) setDialoog(k.link)
+    },
   })
   const { wrap, svg, wrapStijl, breedte, hoogte, zicht } = canvas
 
@@ -144,6 +158,7 @@ export function EcosysteemBrein({ data, klantNaam, maxHoogte = 640, vul = false 
                     <circle r={k.r + (k.soort === 'link' ? 4 : 8)} fill="transparent" />{/* hit target bigger than the mark */}
                     {k.soort === 'hub' && <circle r={k.r + 5} fill="none" stroke={kleur} strokeWidth={2} strokeDasharray={k.status ? LINK_STREEP[k.status] : undefined} />}
                     {gekozen === k.id && <circle r={k.r + (k.soort === 'hub' ? 10 : 5)} fill="none" stroke={NAVY} strokeWidth={1.5} />}
+                    {kansVan.has(k.id) && <circle cx={k.r * 0.8} cy={-k.r * 0.8} r={3.2} fill={NAVY} stroke="#fff" strokeWidth={1.25} />}
                     <circle r={k.r} fill={k.soort === 'hub' || k.soort === 'klant' || k.soort === 'moment' ? NAVY : hol ? '#fff' : kleur}
                       stroke={k.soort === 'moment' ? LINK_KLEUR.mogelijk : hol ? kleur : '#fff'} strokeWidth={2} />
                     {label && (
@@ -159,13 +174,18 @@ export function EcosysteemBrein({ data, klantNaam, maxHoogte = 640, vul = false 
           </svg>
 
           {hoverKnoop && hover && <Tooltip knoop={hoverKnoop} x={hover.x} y={hover.y} breedte={breedte} />}
-          <p className="pointer-events-none absolute bottom-2 left-3 text-[11px] text-slate-400">Scroll om te zoomen · sleep om te verschuiven · klik een knoop voor details</p>
+          <p className="pointer-events-none absolute bottom-2 left-3 text-[11px] text-slate-400">Scroll om te zoomen · sleep om te verschuiven · klik een mogelijke link om ze naar de app te sturen · ● = verstuurd</p>
         </div>
       </div>
 
       <div className={vul ? 'min-h-0 overflow-y-auto' : ''}>
-        <Detail knoop={gekozenKnoop} data={data} knoopVan={knoopVan} kies={setGekozen} />
+        <Detail knoop={gekozenKnoop} data={data} knoopVan={knoopVan} kies={setGekozen} kansVan={kansVan} stuur={setDialoog} />
       </div>
+
+      {dialoog && (
+        <KansDialoog klantId={klantId} klantNaam={klantNaam} link={dialoog} sluit={sluitDialoog} verstuurd={naVerstuurd}
+          ecosysteemNaam={data.clusters.find((c) => c.ecosysteem === dialoog.ecosysteem)?.naam ?? dialoog.ecosysteem} />
+      )}
     </div>
   )
 }
@@ -189,7 +209,9 @@ function Tooltip({ knoop, x, y, breedte }: { knoop: Knoop; x: number; y: number;
   )
 }
 
-function Detail({ knoop, data, knoopVan, kies }: { knoop?: Knoop; data: Ecosystemen; knoopVan: Map<string, Knoop>; kies: (id: string | null) => void }) {
+function Detail({ knoop, data, knoopVan, kies, kansVan, stuur }: {
+  knoop?: Knoop; data: Ecosystemen; knoopVan: Map<string, Knoop>; kies: (id: string | null) => void; kansVan: Map<string, Kans>; stuur: (l: Link) => void
+}) {
   if (!knoop) {
     const s = data.samenvatting
     return (
@@ -266,6 +288,11 @@ function Detail({ knoop, data, knoopVan, kies }: { knoop?: Knoop; data: Ecosyste
         {l.sinds && <span className="text-xs text-slate-500">sinds {new Date(l.sinds).toLocaleDateString('nl-BE')}</span>}
       </div>
       {l.status === 'gekend' && <p className="text-xs text-slate-500">De klant deelt geen data van deze partner. KBC weet enkel dat de relatie bestaat.</p>}
+      {l.status === 'mogelijk' && (kansVan.get(l.id) ? <KansStatusRegel kans={kansVan.get(l.id)!} /> : (
+        <button onClick={() => stuur(l)} className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-kbc-800 px-3 py-2 text-sm font-medium text-white hover:bg-kbc-900">
+          <Smartphone size={14} /> Stuur naar KBC Mobile
+        </button>
+      ))}
       {l.score != null && (
         <div>
           <div className="mb-1 flex justify-between text-xs"><span className="text-slate-500">Kans op interesse</span><b className="tabular-nums text-kbc-800">{pct(l.score)}</b></div>
@@ -298,7 +325,8 @@ function Detail({ knoop, data, knoopVan, kies }: { knoop?: Knoop; data: Ecosyste
 }
 
 /** Table view of the same clusters, so nothing depends on reading the graph. */
-export function ClusterTabel({ data }: { data: Ecosystemen }) {
+export function ClusterTabel({ data, kansen = [] }: { data: Ecosystemen; kansen?: Kans[] }) {
+  const kansVan = new Map(kansen.map((k) => [k.link.id, k]))
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[640px] text-left text-sm">
@@ -310,7 +338,10 @@ export function ClusterTabel({ data }: { data: Ecosystemen }) {
             <tr key={l.id} className={i === 0 ? 'border-t border-slate-200' : ''}>
               <td className="py-1.5 pr-3 align-top font-medium text-kbc-800">{i === 0 ? c.naam : ''}</td>
               <td className="pr-3 align-top text-slate-700">{l.naam}{l.soort === 'partner' && <span className="ml-1 text-xs text-slate-400">partner</span>}</td>
-              <td className="pr-3 align-top"><StatusPil status={l.status} /></td>
+              <td className="pr-3 align-top">
+                <StatusPil status={l.status} />
+                {kansVan.get(l.id) && <span className="mt-0.5 flex items-center gap-1 text-xs text-kbc-600"><Smartphone size={11} /> {KANS_STATUS_LABEL[kansVan.get(l.id)!.status]}</span>}
+              </td>
               <td className="pr-3 align-top text-xs text-slate-500">{l.herkomst ? HERKOMST_LABEL[l.herkomst] : l.waarom?.map((w) => w.naam).join(', ')}</td>
               <td className="text-right align-top tabular-nums text-slate-600">{l.score != null ? pct(l.score) : ''}</td>
             </tr>
