@@ -4,6 +4,7 @@ import { CheckCircle2, Send, Smartphone, X } from 'lucide-react'
 import type { Kans, Link } from '../types'
 import { api, ApiError } from '../lib/api'
 import { KANS_STATUS_LABEL, LINK_KLEUR, pct } from '../lib/labels'
+import { useBridge } from '../lib/pocBridge'
 
 const FOUT: Record<string, string> = {
   al_verstuurd: 'Deze kans werd al naar de klant gestuurd.',
@@ -49,6 +50,23 @@ export function KansDialoog({ klantId, klantNaam, link, ecosysteemNaam, sluit, v
       setBezig(false)
     }
   }
+
+  // Pitch tour: type the adviser's note visibly, then send it like a click would
+  const typen = useRef(0)
+  useEffect(() => () => clearInterval(typen.current), [])
+  useBridge((m) => {
+    if (m.kateStudio === 'kansTyp') {
+      clearInterval(typen.current)
+      const tekst = m.tekst.slice(0, MAX_BERICHT)
+      let n = 0
+      typen.current = window.setInterval(() => {
+        n += 1
+        setBericht(tekst.slice(0, n))
+        if (n >= tekst.length) clearInterval(typen.current)
+      }, 25)
+    }
+    if (m.kateStudio === 'kansVerstuur' && !bezig && !klaar) verstuur()
+  }, [bericht, bezig, klaar])
 
   return createPortal(
     <div className="fixed inset-0 z-[60] grid place-items-center bg-kbc-900/40 p-4" onPointerDown={(e) => e.target === e.currentTarget && sluit()}>

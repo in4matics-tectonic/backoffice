@@ -1,12 +1,20 @@
 // Bridge to the PoC showcase (poc-runner). When the backoffice runs in the showcase's iframe, the guided tour can
 // log it in as the demo adviser and switch pages, and hears back when that happened. Only messages from the
 // parent frame count, and they never carry credentials: the tour asks, the backoffice uses its own demo login.
+// The pitch tour also drives the ecosystem graph: full screen, pick a node, and send a possible link to the app
+// through the normal dialog (typed visibly, then sent), so it looks the same as an adviser clicking.
 import { useEffect } from 'react'
 
 export type BridgeMsg =
   | { kateStudio: 'hello' }
   | { kateStudio: 'login' }
   | { kateStudio: 'page'; page: string; klantId?: string }
+  | { kateStudio: 'graaf'; vol: boolean }
+  | { kateStudio: 'knoop'; id: string | null }
+  | { kateStudio: 'kans'; link: string }
+  | { kateStudio: 'kansTyp'; tekst: string }
+  | { kateStudio: 'kansVerstuur' }
+  | { kateStudio: 'kansSluit' }
 
 const framed = window.parent !== window
 

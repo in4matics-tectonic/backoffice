@@ -3,6 +3,7 @@ import { Smartphone } from 'lucide-react'
 import { forceCollide, forceLink, forceManyBody, forceX, forceY, type SimulationLinkDatum } from 'd3-force'
 import type { Ecosystemen, Kans, Link, LinkStatus, MomentId } from '../types'
 import { HERKOMST_LABEL, KANS_STATUS_LABEL, LINK_KLEUR, LINK_STREEP, MOMENT_LABEL, pct } from '../lib/labels'
+import { tell, useBridge } from '../lib/pocBridge'
 import { knoopId as id, kort, labelBij, NAVY, plaatsBloemen, ringStraal, STATUSSEN, useGraafCanvas, type BloemKnoop } from '../lib/useGraafCanvas'
 import { StatusFilter, StatusPil, StatusStip, ZoomKnoppen } from './graaf'
 import { KansDialoog, KansStatusRegel } from './KansDialoog'
@@ -67,6 +68,17 @@ export function EcosysteemBrein({ data, klantId, klantNaam, kansen, naVerstuurd,
   // Only re-layout when the structure changes, not on every poll
   const sleutel = JSON.stringify([data.clusters.map((c) => c.links.map((l) => l.id + l.status + (l.score ?? ''))), data.verbanden.map((v) => v.van + v.naar)])
   const graaf = useMemo(() => bouwGraaf(data, klantNaam), [sleutel, klantNaam]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Pitch tour: select a node (its reasoning lines light up) and open the send dialog for a possible link
+  useBridge((m) => {
+    if (m.kateStudio === 'knoop') setGekozen(m.id && graaf.knopen.some((k) => k.id === m.id) ? m.id : null)
+    if (m.kateStudio === 'kansSluit') setDialoog(null)
+    if (m.kateStudio === 'kans') {
+      const link = data.clusters.flatMap((c) => c.links).find((l) => l.id === m.link)
+      if (link?.status !== 'mogelijk') return tell({ kateStudio: 'error', error: 'geen_mogelijke_link' })
+      setGekozen(link.id)
+      setDialoog(link)
+    }
+  }, [graaf, data])
   const canvas = useGraafCanvas<Knoop, Lijn>({
     graaf: graaf.skelet, maxHoogte, vul,
     krachten: (s, lijnen) => s

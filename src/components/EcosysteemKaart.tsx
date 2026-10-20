@@ -4,6 +4,7 @@ import type { Ecosystemen, Kans, KlantPartner } from '../types'
 import { api } from '../lib/api'
 import { usePoll } from '../lib/usePoll'
 import { HERKOMST_LABEL } from '../lib/labels'
+import { useBridge } from '../lib/pocBridge'
 import { ClusterTabel, EcosysteemBrein } from './EcosysteemBrein'
 import { VolScherm, VolSchermKnop } from './graaf'
 import { Kaart } from './ui'
@@ -13,6 +14,11 @@ export function EcosysteemKaart({ klantId, klantNaam }: { klantId: string; klant
   const [weergave, setWeergave] = useState<'graaf' | 'lijst'>('graaf')
   const [vol, setVol] = useState(false)
   const sluit = useCallback(() => setVol(false), [])
+  useBridge((m) => {
+    if (m.kateStudio !== 'graaf') return
+    setWeergave('graaf')
+    setVol(m.vol)
+  }, [])
   const { data, ververs } = usePoll(async () => {
     const [eco, partners, kansen] = await Promise.all([
       api<Ecosystemen>(`/klanten/${klantId}/ecosystemen`),
