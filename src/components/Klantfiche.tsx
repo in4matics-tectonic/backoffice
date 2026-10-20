@@ -1,4 +1,4 @@
-import { Check, CircleHelp, ShieldAlert, ShieldCheck, ShieldOff, Sparkles, Wallet } from 'lucide-react'
+import { Building2, Check, CircleHelp, ShieldAlert, ShieldCheck, ShieldOff, Sparkles, Wallet } from 'lucide-react'
 import type { Bron, Domein, Klant, Moment, Product, Rekening } from '../types'
 import { api } from '../lib/api'
 import { usePoll } from '../lib/usePoll'
@@ -45,6 +45,15 @@ export function Klantfiche({ klantId, momenten, week }: { klantId: string; momen
           <div>
             <p className="text-xs text-kbc-100/70">{klant.id}</p>
             <h2 className="text-2xl font-semibold">{klant.naam}</h2>
+            {klant.onderneming && (
+              <div className="mt-1 max-w-xl text-sm text-kbc-100/90">
+                <p className="flex items-center gap-1.5 font-medium text-white"><Building2 size={14} /> {klant.onderneming.naam}</p>
+                <p className="text-xs text-kbc-100/70">
+                  {klant.onderneming.ondernemingsnummer} · {klant.onderneming.sector} · {klant.onderneming.werknemers} werknemers · sinds {new Date(klant.onderneming.opgericht).getFullYear()}
+                </p>
+                <p className="text-xs text-kbc-100/70">{klant.onderneming.omschrijving}</p>
+              </div>
+            )}
             <div className="mt-2 flex flex-wrap gap-1.5">
               {p.producten.map((pr) => <span key={pr.code} className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs">{pr.naam}</span>)}
             </div>
@@ -60,7 +69,7 @@ export function Klantfiche({ klantId, momenten, week }: { klantId: string; momen
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Kaart titel="Levenslandschap">
-          <div className="grid grid-cols-4 gap-2 sm:grid-cols-7 lg:grid-cols-4 xl:grid-cols-7">
+          <div className="grid grid-cols-4 gap-2 sm:grid-cols-8 lg:grid-cols-4 xl:grid-cols-8">
             {(Object.keys(DOMEIN_LABEL) as Domein[]).map((d) => {
               const st = STATUS[klant.landschap[d]]
               const Icon = DOMEIN_ICON[d]

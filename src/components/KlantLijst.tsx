@@ -26,7 +26,7 @@ export function KlantLijst({ klanten, gekozen, kies, zoek }: { klanten: KlantRij
                 <span className="font-medium text-kbc-800">{k.naam}</span>
                 {m && <FaseBadge fase={m.fase} />}
               </div>
-              <p className="text-xs text-slate-500">{k.id}</p>
+              <p className="text-xs text-slate-500">{k.id}{k.onderneming && ` · ${k.onderneming}`}</p>
               {m ? (
                 <div className="mt-2">
                   <div className="mb-1 flex items-center justify-between text-xs">

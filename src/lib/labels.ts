@@ -3,7 +3,9 @@ import type { Bron, Domein, Fase, Herkomst, LinkStatus, MomentId } from '../type
 export const MOMENT_LABEL: Record<MomentId, string> = {
   GEZINSUITBREIDING: 'Gezinsuitbreiding',
   HUIS_KOPEN: 'Huis kopen',
+  TROUWEN: 'Trouwen',
   ZAAK_STARTEN: 'Zaak starten',
+  ZAAK_UITBREIDEN: 'Zaak uitbreiden',
 }
 
 export const BRON_LABEL: Record<Bron, string> = {
@@ -21,7 +23,7 @@ export const FASE_KLEUR: Record<Fase, string> = { stil: '#cdeefb', info: '#66cef
 export const DREMPELS = { info: 0.4, vragen: 0.7, voorstel: 0.9 }
 
 export const DOMEIN_LABEL: Record<Domein, string> = {
-  huis: 'Huis', gezin: 'Gezin', auto: 'Auto', bescherming: 'Bescherming', sparen: 'Sparen', gezondheid: 'Gezondheid', reizen: 'Reizen',
+  huis: 'Huis', gezin: 'Gezin', auto: 'Auto', bescherming: 'Bescherming', sparen: 'Sparen', gezondheid: 'Gezondheid', reizen: 'Reizen', onderneming: 'Onderneming',
 }
 
 export const pct = (n: number) => `${Math.round(n * 100)}%`

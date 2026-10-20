@@ -1,15 +1,22 @@
 // Mirrors the backend contract (see GET /docs on the API). Dutch field names on purpose.
 export type Bron = 'EIGEN_AI' | 'DOCCLE' | 'GEOFENCE' | 'APP' | 'REKENING'
-export type MomentId = 'GEZINSUITBREIDING' | 'HUIS_KOPEN' | 'ZAAK_STARTEN'
-export type Domein = 'huis' | 'gezin' | 'auto' | 'bescherming' | 'sparen' | 'gezondheid' | 'reizen'
+export type MomentId = 'GEZINSUITBREIDING' | 'HUIS_KOPEN' | 'TROUWEN' | 'ZAAK_STARTEN' | 'ZAAK_UITBREIDEN'
+export type Domein = 'huis' | 'gezin' | 'auto' | 'bescherming' | 'sparen' | 'gezondheid' | 'reizen' | 'onderneming'
 export type DomeinStatus = 'geregeld' | 'kans' | 'nieuw'
 export type Fase = 'stil' | 'info' | 'vragen' | 'voorstel'
 
 export interface User { sub: string; role: string; klantId?: string }
 
-export interface KlantKort { id: string; naam: string }
+export interface KlantKort { id: string; naam: string; onderneming?: string | null }
 
-export interface Klant extends KlantKort {
+export interface Onderneming {
+  naam: string; ondernemingsnummer: string; sector: string; omschrijving: string; opgericht: string; werknemers: number
+}
+
+export interface Klant {
+  id: string
+  naam: string
+  onderneming?: Onderneming
   toestemming: Record<Bron, boolean>
   producten: string[]
   landschap: Record<Domein, DomeinStatus>
