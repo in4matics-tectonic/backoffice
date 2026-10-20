@@ -16,7 +16,7 @@ pnpm dev          # http://localhost:5173
 ```
 
 Log in as `adviseur` with the demo password (ask the backend owner; it's `DEMO_PASSWORD` in the backend's `.env`).
-Customer accounts (`tom`, `lien`, `sarah`) are refused: this app is for KBC staff only.
+Customer accounts (`tom`, `lien`, `jonas`) are refused: this app is for KBC staff only.
 
 **Demo login for visitors/judges.** The login page shows a "Demo-login voor bezoekers" box with the username and
 password, plus a button that fills them in. The password (`in4matics-must-win`, same for every demo user) is committed on purpose (`src/components/Login.tsx`) so
@@ -38,6 +38,9 @@ Config (optional, see `.env.example`):
 | **Moment Radar** | KPI tiles, detected moments per week, funnel signal → handled, channel split, moments table | Portfolio numbers are **simulated** (labelled "Simulatie · mockdata"), see `src/lib/simulatie.ts` |
 | | Live signal feed, signals per source, customers with the highest intent | **Live** from the API |
 | **Klanten** | Customer list sorted by intent; customer file with products, consent, life landscape, per moment: score meter (40/70/90 thresholds), score history, signal timeline, next best action, playbook, audit trail | **Live** |
+| | Ecosystem graph per customer: KBC products and partners per ecosystem (active, known, possible), the reasoning behind every suggestion, and sending a possible link to the customer's app as an opportunity | **Live** |
+| **Klantennetwerk** | Every customer in one graph, linked through shared ecosystems, products and partners | **Live** |
+| **Ecosystemen** | The KBC ecosystem catalogue (from `KBC_Ecosystems.xlsx`) and which customers touch each one | **Live** |
 | **Auditlog** | Last 100 audit events from the backend | **Live** |
 
 The top bar has the demo controls (**Speel af / Volgende / Reset**), which drive the backend's demo clock
@@ -87,3 +90,10 @@ backoffice.example.com {
 If the API is on another origin instead: build with `VITE_API_URL=https://api.example.com` and add the backoffice
 origin to the backend's `CORS_ORIGINS`. Behind a proxy, the backend needs `TRUST_PROXY=true`, and `DEMO_MODE=true`
 for the Speel af / Volgende / Reset buttons.
+
+## Unfinished (PoC)
+
+- The portfolio numbers on the Moment Radar are simulated; the per-customer data is live.
+- The next best action is rule-based per phase; the LLM advice from the tech doc isn't built.
+- An adviser can send a suggestion to the app, but not plan a meeting or start a product from here.
+- Login uses the shared demo password; the target is KBC's own staff login.

@@ -78,11 +78,28 @@ export interface Link {
 }
 export interface Cluster { ecosysteem: string; naam: string; status: LinkStatus; links: Link[] }
 export interface Verband { van: string; naar: NodeId; gewicht: number }
+/** Two partners of one customer that would work better together; the customer agrees in the app. */
+export type KoppelingStatus = 'mogelijk' | 'voorgesteld' | 'actief' | 'afgewezen'
+export interface Koppeling {
+  id: string; van: NodeId; naar: NodeId; naam: string; ecosysteem: string; ecosysteemNaam: string; doel: string; status: KoppelingStatus
+}
 export interface Ecosystemen {
   week: number
   samenvatting: { actief: number; gekend: number; mogelijk: number; ecosystemen: number; nieuweEcosystemen: string[] }
   clusters: Cluster[]
   verbanden: Verband[]
+  koppelingen: Koppeling[]
+}
+
+// ---- The next-best-channel agent (GET /klanten/:id/agent) ----
+export interface AgentBeslissing {
+  id: string; klantId: string; moment: MomentId; score: number
+  kanaal: 'automatisch' | 'adviseur'
+  engagement: { app: number; adviseur: number }
+  redenen: string[]; actie: string
+  status: 'uitgevoerd' | 'taak' | 'afgehandeld'
+  voorstellen: { id: string; naam: string }[]
+  ts: string
 }
 
 // ---- Kansen: possible links an adviser sent to the customer's app (GET/POST /klanten/:id/kansen) ----
@@ -90,7 +107,9 @@ export type KansStatus = 'nieuw' | 'gezien' | 'interesse' | 'afgewezen'
 export interface Kans {
   id: string
   klantId: string
-  link: { id: NodeId; soort: 'product' | 'partner'; ref: string; naam: string; ecosysteem: string; ecosysteemNaam: string }
+  link: { id: NodeId; soort: 'product' | 'partner' | 'koppeling'; ref: string; naam: string; ecosysteem: string; ecosysteemNaam: string }
+  /** kate: the agent sent it on its own; adviseur: an adviser did */
+  afzender: 'kate' | 'adviseur'
   score: number
   waarom: string[]
   bericht: string | null

@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import { Smartphone } from 'lucide-react'
 import { forceCollide, forceLink, forceManyBody, forceX, forceY, type SimulationLinkDatum } from 'd3-force'
-import type { Ecosystemen, Kans, Link, LinkStatus, MomentId } from '../types'
+import type { Ecosystemen, Kans, Koppeling, KoppelingStatus, Link, LinkStatus, MomentId } from '../types'
 import { HERKOMST_LABEL, KANS_STATUS_LABEL, LINK_KLEUR, LINK_STREEP, MOMENT_LABEL, pct } from '../lib/labels'
 import { tell, useBridge } from '../lib/pocBridge'
 import { knoopId as id, kort, labelBij, NAVY, plaatsBloemen, ringStraal, STATUSSEN, useGraafCanvas, type BloemKnoop } from '../lib/useGraafCanvas'
@@ -22,8 +22,9 @@ interface Knoop extends BloemKnoop {
 }
 interface Lijn extends SimulationLinkDatum<Knoop> {
   id: string
-  /** structuur: customer to hub or moment (simulated) · spaak: hub to link · verband: reasoning */
-  soort: 'structuur' | 'spaak' | 'verband'
+  /** structuur: customer to hub or moment (simulated) · spaak: hub to link · verband: reasoning · koppeling: partner pair */
+  soort: 'structuur' | 'spaak' | 'verband' | 'koppeling'
+  koppeling?: KoppelingStatus
   status?: LinkStatus
   afstand: number
 }
@@ -48,6 +49,11 @@ function bouwGraaf(data: Ecosystemen, klantNaam: string) {
     }
     lijnen.push({ id: `${v.van}~${v.naar}`, source: v.van, target: v.naar, soort: 'verband', afstand: 0 })
   }
+  // Partner pairs: drawn between the two partners, across their ecosystems
+  for (const k of data.koppelingen ?? []) {
+    if (k.status === 'afgewezen' || !knopen.some((n) => n.id === k.van) || !knopen.some((n) => n.id === k.naar)) continue
+    lijnen.push({ id: k.id, source: k.van, target: k.naar, soort: 'koppeling', koppeling: k.status, afstand: 0 })
+  }
   return { knopen, lijnen, skelet: { knopen: knopen.filter((k) => k.soort !== 'link'), lijnen: lijnen.filter((l) => l.soort === 'structuur') } }
 }
 
@@ -66,13 +72,20 @@ export function EcosysteemBrein({ data, klantId, klantNaam, kansen, naVerstuurd,
   const [redenering, setRedenering] = useState(true)
 
   // Only re-layout when the structure changes, not on every poll
-  const sleutel = JSON.stringify([data.clusters.map((c) => c.links.map((l) => l.id + l.status + (l.score ?? ''))), data.verbanden.map((v) => v.van + v.naar)])
+  const sleutel = JSON.stringify([data.clusters.map((c) => c.links.map((l) => l.id + l.status + (l.score ?? ''))), data.verbanden.map((v) => v.van + v.naar), (data.koppelingen ?? []).map((k) => k.id + k.status)])
   const graaf = useMemo(() => bouwGraaf(data, klantNaam), [sleutel, klantNaam]) // eslint-disable-line react-hooks/exhaustive-deps
   // Pitch tour: select a node (its reasoning lines light up) and open the send dialog for a possible link
   useBridge((m) => {
     if (m.kateStudio === 'knoop') setGekozen(m.id && graaf.knopen.some((k) => k.id === m.id) ? m.id : null)
     if (m.kateStudio === 'kansSluit') setDialoog(null)
     if (m.kateStudio === 'kans') {
+      const paar = data.koppelingen?.find((k) => k.id === m.link)
+      if (paar) {
+        if (paar.status !== 'mogelijk') return tell({ kateStudio: 'error', error: 'geen_mogelijke_link' })
+        setGekozen(paar.van)
+        setDialoog(paarAlsLink(paar))
+        return
+      }
       const link = data.clusters.flatMap((c) => c.links).find((l) => l.id === m.link)
       if (link?.status !== 'mogelijk') return tell({ kateStudio: 'error', error: 'geen_mogelijke_link' })
       setGekozen(link.id)
@@ -102,7 +115,7 @@ export function EcosysteemBrein({ data, klantId, klantNaam, kansen, naVerstuurd,
   const knoopVan = new Map(graaf.knopen.map((k) => [k.id, k]))
   const lijnen = graaf.lijnen.filter((l) => {
     const a = knoopVan.get(id(l.source!))!, b = knoopVan.get(id(l.target!))!
-    return zichtbaar(a) && zichtbaar(b) && (l.soort === 'structuur' || redenering)
+    return zichtbaar(a) && zichtbaar(b) && (l.soort === 'structuur' || l.soort === 'koppeling' || redenering)
   })
   const focus = hover?.id ?? gekozen
   const buren = useMemo(() => {
@@ -143,6 +156,14 @@ export function EcosysteemBrein({ data, klantId, klantNaam, kansen, naVerstuurd,
                 const a = knoopVan.get(id(l.source!))!, b = knoopVan.get(id(l.target!))!
                 if (a.x == null || b.x == null) return null
                 const o = dim([a.id, b.id])
+                if (l.soort === 'koppeling') {
+                  // A wider arc than the reasoning lines; solid once the customer agreed
+                  const mx = (a.x + b.x) / 2 - (b.y! - a.y!) * 0.3, my = (a.y! + b.y!) / 2 + (b.x - a.x) * 0.3
+                  const actief = l.koppeling === 'actief'
+                  return <path key={l.id} d={`M${a.x},${a.y}Q${mx},${my} ${b.x},${b.y}`} fill="none" stroke={KOPPELING_KLEUR}
+                    strokeWidth={actief ? 3.5 : 2} strokeDasharray={actief ? undefined : l.koppeling === 'voorgesteld' ? '6 4' : '2 4'}
+                    strokeLinecap="round" strokeOpacity={buren ? Math.max(o, 0.35) : actief ? 0.95 : 0.7} />
+                }
                 if (l.soort === 'verband') {
                   // Curved so reasoning lines read apart from the cluster spokes
                   const mx = (a.x + b.x) / 2 - (b.y! - a.y!) * 0.15, my = (a.y! + b.y!) / 2 + (b.x - a.x) * 0.15
@@ -192,6 +213,11 @@ export function EcosysteemBrein({ data, klantId, klantNaam, kansen, naVerstuurd,
 
       <div className={vul ? 'min-h-0 overflow-y-auto' : ''}>
         <Detail knoop={gekozenKnoop} data={data} knoopVan={knoopVan} kies={setGekozen} kansVan={kansVan} stuur={setDialoog} />
+        {(data.koppelingen ?? []).length > 0 && (
+          <p className="mt-2 flex items-center gap-1.5 px-1 text-[11px] text-slate-500">
+            <span className="inline-block h-0.5 w-5 rounded" style={{ background: KOPPELING_KLEUR }} /> Partners die samenwerken voor deze klant
+          </p>
+        )}
       </div>
 
       {dialoog && (
@@ -324,6 +350,19 @@ function Detail({ knoop, data, knoopVan, kies, kansVan, stuur }: {
           </ul>
         </div>
       )}
+      {l.soort === 'partner' && (data.koppelingen ?? []).filter((k) => k.van === l.id || k.naar === l.id).map((k) => (
+        <div key={k.id} className="rounded-lg bg-white p-2 text-xs ring-1" style={{ borderColor: KOPPELING_KLEUR, boxShadow: `inset 3px 0 0 ${KOPPELING_KLEUR}` }}>
+          <p className="font-medium text-kbc-800">Samenwerking: {k.naam}</p>
+          <p className="text-slate-600">{k.doel}</p>
+          {kansVan.get(k.id) ? <div className="mt-1.5"><KansStatusRegel kans={kansVan.get(k.id)!} /></div>
+            : k.status === 'actief' ? <p className="mt-1 font-medium text-green-800">Actief: de klant gaf akkoord</p>
+            : k.status === 'mogelijk' && (
+              <button onClick={() => stuur(paarAlsLink(k))} className="mt-1.5 inline-flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-white" style={{ background: KOPPELING_KLEUR }}>
+                <Smartphone size={13} /> Voorstel naar KBC Mobile
+              </button>
+            )}
+        </div>
+      ))}
       {leidtTot.length > 0 && (
         <div>
           <p className="mb-1 text-xs font-medium text-slate-500">Leidt tot</p>
@@ -334,6 +373,13 @@ function Detail({ knoop, data, knoopVan, kies, kansVan, stuur }: {
       )}
     </aside>
   )
+}
+
+const KOPPELING_KLEUR = '#7c3aed'
+
+/** A partner pair goes to the app through the same dialog as a possible link: the customer agrees there. */
+function paarAlsLink(k: Koppeling): Link {
+  return { id: k.id, soort: 'partner', ref: k.id, naam: k.naam, ecosysteem: k.ecosysteem, status: 'mogelijk', waarom: [{ via: k.van, naam: k.naam, reden: k.doel }] }
 }
 
 /** Table view of the same clusters, so nothing depends on reading the graph. */

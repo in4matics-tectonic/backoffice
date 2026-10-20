@@ -9,6 +9,7 @@ import { FaseBadge } from './FaseBadge'
 import { ScoreVerloop } from './ScoreVerloop'
 import { SignaalTijdlijn } from './SignaalTijdlijn'
 import { AdviesKaart } from './AdviesKaart'
+import { AgentKaart } from './AgentKaart'
 import { AuditLog } from './AuditLog'
 import { EcosysteemKaart } from './EcosysteemKaart'
 import { Kaart } from './ui'
@@ -64,6 +65,8 @@ export function Klantfiche({ klantId, momenten, week }: { klantId: string; momen
           </div>
         </div>
       </section>
+
+      <AgentKaart klantId={klantId} />
 
       <EcosysteemKaart klantId={klantId} klantNaam={klant.naam} />
 
