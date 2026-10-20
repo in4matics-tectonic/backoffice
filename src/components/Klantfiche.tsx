@@ -10,6 +10,7 @@ import { ScoreVerloop } from './ScoreVerloop'
 import { SignaalTijdlijn } from './SignaalTijdlijn'
 import { AdviesKaart } from './AdviesKaart'
 import { AuditLog } from './AuditLog'
+import { EcosysteemKaart } from './EcosysteemKaart'
 import { Kaart } from './ui'
 
 interface Profiel { klant: Klant; producten: Product[]; rekeningen: Rekening[] }
@@ -54,6 +55,8 @@ export function Klantfiche({ klantId, momenten, week }: { klantId: string; momen
           </div>
         </div>
       </section>
+
+      <EcosysteemKaart klantId={klantId} klantNaam={klant.naam} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Kaart titel="Levenslandschap">

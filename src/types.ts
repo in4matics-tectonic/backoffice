@@ -48,3 +48,32 @@ export interface Product { code: string; naam: string }
 export interface Rekening { id: string; iban: string; type: string; naam: string; saldo: number }
 export interface AuditEvent { ts: string; actor: string; actie: string; klantId?: string; detail?: string }
 export interface Demo { week: number; weken: number[] }
+
+// ---- Ecosystems & partners (GET /catalogus, /klanten/:id/partners, /klanten/:id/ecosystemen) ----
+export type LinkStatus = 'actief' | 'gekend' | 'mogelijk'
+export type Herkomst = 'REKENING' | 'KBC_MOBILE' | 'KLANT' | 'KBC_PRODUCT'
+export type NodeId = string // 'product:<id>' | 'partner:<id>'
+
+export interface EcosysteemKort { id: string; naam: string; aantalProducten: number; partners: string[] }
+export interface CatalogusProduct { id: string; naam: string; ecosysteem: string; partners: string[]; kanaal: 'KLANT' | 'B2B' }
+export interface PartnerInfo { id: string; naam: string; ecosysteem: string; ecosystemen: string[]; producten: string[]; gevoelig: boolean }
+export interface Catalogus { ecosystemen: EcosysteemKort[]; producten: CatalogusProduct[]; partners: PartnerInfo[] }
+
+export interface KlantPartner {
+  partner: string; naam: string; ecosysteem: string; gevoelig: boolean
+  klantBijPartner: boolean; deelt: boolean; herkomst: Herkomst | null; sinds: string | null
+}
+
+export interface Waarom { via: string; naam: string; reden: string }
+export interface Link {
+  id: NodeId; soort: 'product' | 'partner'; ref: string; naam: string; ecosysteem: string
+  status: LinkStatus; herkomst?: Herkomst; sinds?: string; score?: number; waarom?: Waarom[]
+}
+export interface Cluster { ecosysteem: string; naam: string; status: LinkStatus; links: Link[] }
+export interface Verband { van: string; naar: NodeId; gewicht: number }
+export interface Ecosystemen {
+  week: number
+  samenvatting: { actief: number; gekend: number; mogelijk: number; ecosystemen: number; nieuweEcosystemen: string[] }
+  clusters: Cluster[]
+  verbanden: Verband[]
+}
